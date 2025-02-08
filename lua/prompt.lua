@@ -1,4 +1,4 @@
-require("llm_files")
+require("files")
 
 function Get_lines_until_cursor()
   local current_buffer = vim.api.nvim_get_current_buf()
@@ -98,8 +98,8 @@ function Get_prompt(opts)
   return prompt
 end
 
-function Get_system_prompt(opts)
-  local llm_paths = Get_llmfile_paths()
-  local system_prompt = define_system_prompt(opts.help_prompt, opts.replace_prompt, opts.replace)
+function Get_system_prompt(help_prompt, replace_prompt, storage_dir, llmfiles_name, replace)
+  local llm_paths = Get_paths_to_llm_files_contents(storage_dir, llmfiles_name)
+  local system_prompt = define_system_prompt(help_prompt, replace_prompt, replace)
   return System_prompt_with_llm_files(llm_paths, system_prompt)
 end

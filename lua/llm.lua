@@ -1,14 +1,13 @@
 require("curl_args")
-require("data_fn")
+require("data_handlers")
 require("models")
-require("llm_files")
-require("floating_window")
+require("files")
+require("windows")
 require("settings")
 require("prompt")
-
 local Job = require 'plenary.job'
 
-local group = vim.api.nvim_create_augroup('DING_LLM_AutoGroup', { clear = true })
+local group = vim.api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 local active_job = nil
 
 local M = {
@@ -18,9 +17,28 @@ local M = {
   _settings_buf = nil,
 }
 
+function M._update_settings(settings)
+  if settings == nil then
+    return
+  end
+  M.show_reasoning = settings.show_reasoning
+  M.model = settings.model
+end
+
 function M.setup(opts)
-  opts.storage_dir = opts.storage_dir or vim.fn.stdpath('data') .. '/llm'
-  M.opts = opts
+  M._storage_dir = opts.storage_dir or vim.fn.stdpath('data') .. '/llm'
+  M.llmfiles_name = opts.llmfiles_name or '.llmfiles'
+  M.chat_name = opts.chat_name or 'chat.md'
+  M.default_model = opts.default_model or 'claude-3-5-sonnet-20241022'
+  M.help_prompt = opts.help_prompt
+  M.replace_prompt = opts.replace_prompt
+  local settings = Get_settings(M._storage_dir)
+  if settings == nil then
+    M.show_reasoning = false
+    M.model = M.default_model
+    return
+  end
+  M._update_settings(settings)
 end
 
 function M._reasoning_bufwin_fn(f)
@@ -35,9 +53,8 @@ function M._settings_bufwin_fn(f)
   M._settings_win = bufwin[2]
 end
 
-function M.invoke_llm_and_stream_into_editor(opts)
+function M._request_and_stream(opts, system_prompt)
   local prompt = Get_prompt(opts)
-  local system_prompt = Get_system_prompt(opts)
   local handle_data_fn = Get_data_fn(opts.model)
   local args = Make_curl_args(opts.model)(opts, prompt, system_prompt)
 
@@ -61,6 +78,7 @@ function M.invoke_llm_and_stream_into_editor(opts)
     M._reasoning_bufwin_fn(Clear_floating_display())
   end
 
+---@diagnostic disable-next-line: missing-fields
   active_job = Job:new({
     command = 'curl',
     args = args,
@@ -91,7 +109,7 @@ function M.invoke_llm_and_stream_into_editor(opts)
 
   vim.api.nvim_create_autocmd('User', {
     group = group,
-    pattern = 'DING_LLM_Escape',
+    pattern = 'LLM_Escape',
     callback = function()
       if active_job then
         active_job:shutdown()
@@ -102,52 +120,44 @@ function M.invoke_llm_and_stream_into_editor(opts)
     end,
   })
 
-  vim.api.nvim_set_keymap('n', '<Esc>', ':doautocmd User DING_LLM_Escape<CR>', { noremap = true, silent = true })
+  vim.api.nvim_set_keymap('n', '<Esc>', ':doautocmd User LLM_Escape<CR>', { noremap = true, silent = true })
   return active_job
 end
 
-function M.handle_prompt(help)
-  local settings = Get_settings(M.opts.storage_dir)
-  if settings == nil then
-    settings = { model = 'claude-3-5-sonnet-20241022', show_reasoning = false }
+function M._handle_prompt(help)
+  if M.settings == nil then
+    M._update_settings({ model = M.default_model, show_reasoning = false })
   end
-  local opts = Get_opts(settings.model, nil, help, settings.show_reasoning)
-  for k, v in pairs(M.opts) do
-    opts[k] = v
-  end
+  local system_prompt = Get_system_prompt(M.help_prompt, M.replace_prompt, M._storage_dir, M.llmfiles_name, not help)
+  local opts = Get_opts(M.model, system_prompt, help, M.show_reasoning)
   if opts.show_reasoning and M._reasoning_buf ~= nil or M._reasoning_win ~= nil then
     M._reasoning_bufwin_fn(Clear_floating_display)
   end
   vim.api.nvim_clear_autocmds { group = group }
-  M.invoke_llm_and_stream_into_editor(opts)
+  M._request_and_stream(opts, system_prompt)
   if opts.show_reasoning then
     M._reasoning_bufwin_fn(function() return Open_reasoning_window(M._reasoning_buf, M._reasoning_win) end)
   end
 end
 
 function M._select_model_fn()
-  local current_buf = vim.api.nvim_get_current_buf()
-  if current_buf ~= M._settings_buf then
-    error("trying to call select model fn outside model selector buf")
-  end
   local current_win = vim.api.nvim_get_current_win()
-  if current_win ~= M._settings_win then
-    error("trying to call select model fn outside model selector win")
-  end
   local current_line = vim.api.nvim_win_get_cursor(current_win)[1]
-  if current_line == nil then
-    error("failed to get valid line when selecting model")
-  end
   local model = MODELS[current_line]
-  Write_selected_model(M.opts.storage_dir, model)
+  M._update_settings(Write_selected_model(M._storage_dir, model, M.show_reasoning))
+  print("set model to [" .. model .. "]")
+end
+
+function M._toggle_reasoning_window_fn()
+  M._update_settings(Write_selected_model(M._storage_dir, M.model, not M.show_reasoning))
 end
 
 function M.replace()
-  M.handle_prompt(false)
+  M._handle_prompt(false)
 end
 
 function M.help()
-  M.handle_prompt(true)
+  M._handle_prompt(true)
 end
 
 function M.models()
@@ -157,7 +167,18 @@ function M.models()
   if M._settings_buf ~= nil and not vim.api.nvim_buf_is_valid(M._settings_buf) then
     M._settings_buf = nil
   end
-  M._settings_bufwin_fn(function() return Select_model(M._settings_buf, M._settings_win, MODELS, M._select_model_fn) end)
+  M._settings_bufwin_fn(function() return Select_model(M._settings_buf, M._settings_win, MODELS, M._select_model_fn, M._toggle_reasoning_window_fn) end)
+end
+
+function M.chat()
+  vim.cmd('vsplit')
+  vim.cmd('wincmd l')
+  vim.cmd('vertical resize 60')
+  vim.cmd('e ' .. Get_hashed_project_path(M._storage_dir, M.chat_name))
+  vim.cmd('set wrap')
+  vim.cmd('split')
+  vim.cmd('resize 5')
+  vim.cmd('e ' .. Get_hashed_project_path(M._storage_dir, M.llmfiles_name))
 end
 
 return M

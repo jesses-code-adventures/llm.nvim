@@ -1,4 +1,4 @@
-local function open_floating_window(title, buf, win, relative_win, col, row, width, height, enter)
+local function open_floating_window(title, footer, buf, win, relative_win, col, row, width, height, enter)
   if win ~= nil and buf ~= nil then
     return { buf, win }
   end
@@ -16,12 +16,13 @@ local function open_floating_window(title, buf, win, relative_win, col, row, wid
     style = 'minimal',
     border = 'rounded',
     title = title,
-    title_pos = 'center'
+    title_pos = 'center',
+    footer = footer,
+    footer_pos = 'center',
   })
   vim.wo[win].wrap = true
   return { buf, win }
 end
-
 
 local function get_code_win()
   local wins = vim.api.nvim_tabpage_list_wins(0)
@@ -47,8 +48,6 @@ local function get_code_win()
   return relative_win
 end
 
---- buf and win can be undefined, in which case a new reasoning window will be created
---- if they aren't undefined, we'll atttach and return immediately
 function Open_reasoning_window(buf, win)
   if buf ~= nil and vim.api.nvim_buf_is_valid(buf) and win ~= nil and vim.api.nvim_win_is_valid(win) then
     vim.api.nvim_set_current_win(win)
@@ -64,25 +63,30 @@ function Open_reasoning_window(buf, win)
   local height = math.floor(vim.api.nvim_win_get_height(relative_win) * 0.6)
   local col = vim.api.nvim_win_get_width(relative_win) - 1
   local row = 0
-  return open_floating_window("Reasoning", buf, win, relative_win, col, row, width, height, false)
+  return open_floating_window("Reasoning", "ESC - exit", buf, win, relative_win, col, row, width, height, false)
 end
 
-function Select_model(buf, win, models, selectModelCallback)
+function Select_model(buf, win, models, select_model_callback, show_reasoning_callback)
   if buf == nil or not vim.api.nvim_buf_is_valid(buf) then
     buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_lines(buf, 0, 0, false, models)
     vim.bo[buf].modifiable = false
-    vim.keymap.set('n', '<CR>', function() selectModelCallback() end, { buffer = buf, noremap = true, silent = true })
+    vim.keymap.set('n', '<CR>', function()
+      select_model_callback()
+      vim.api.nvim_win_close(0, true)
+    end, { buffer = buf, noremap = true, silent = true })
+    vim.keymap.set('n', 't', function() show_reasoning_callback() end, { buffer = buf, noremap = true, silent = true })
     vim.api.nvim_buf_set_keymap(buf, 'n', 'q', ':bwipeout<CR>', { noremap = true, silent = true })
+    vim.api.nvim_buf_set_keymap(buf, 'n', '<ESC>', ':bwipeout<CR>', { noremap = true, silent = true })
   end
   if win == nil or not vim.api.nvim_win_is_valid(win) then
     local editor_width = vim.o.columns
     local editor_height = vim.o.lines - vim.o.cmdheight
-    local target_width = 40
+    local target_width = 80
     local target_height = 8
     local col = math.floor((editor_width - target_width) / 2)
     local row = math.floor((editor_height - target_height) / 2)
-    return open_floating_window("Select Model", buf, win, nil, col, row, target_width, target_height, true)
+    return open_floating_window("Select Model", "⏎ - select, t - toggle reasoning window display, q - quit", buf, win, nil, col, row, target_width, target_height, true)
   end
   return { buf, win }
 end

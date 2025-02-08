@@ -50,8 +50,6 @@ function Write_json(contents, path)
     on_exit = function(_, return_val)
       if return_val ~= 0 then
         print("Failed to write to file: " .. path)
-      else
-        print("Successfully wrote to file: " .. path)
       end
     end,
   }):start()

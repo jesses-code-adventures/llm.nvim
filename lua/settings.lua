@@ -12,6 +12,7 @@ function Write_selected_model(dir, model, reasoning)
     show_reasoning = reasoning,
   }
   Write_json(settings, path)
+  return settings
 end
 
 function Get_settings(dir)

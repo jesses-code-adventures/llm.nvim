@@ -18,11 +18,16 @@ function LlmFile:formatted_contents()
   return string.format("<contentblock file=%s>\n%s\n</contentblock>", self.path, self.contents)
 end
 
+function Get_hashed_project_path(dir, file_name)
+  dir = vim.fs.joinpath(dir, vim.fn.sha256(vim.fn.getcwd()))
+  vim.fn.mkdir(dir, "p")
+  return vim.fs.joinpath(dir, file_name)
+end
+
 ---@return string[]
-function Get_llmfile_paths()
+function Get_paths_to_llm_files_contents(dir, llmfiles_name)
   local contents = {}
-  local current_dir = vim.fn.getcwd()
-  local file_path = current_dir .. "/.llmfiles"
+  local file_path = Get_hashed_project_path(dir, llmfiles_name)
 
   local file = io.open(file_path, "r")
   if not file then
@@ -36,7 +41,6 @@ function Get_llmfile_paths()
     end
   end
 
-
   file:close()
   return contents
 end
@@ -46,6 +50,7 @@ end
 function System_prompt_with_llm_files(llm_paths, system_prompt)
   local files_string = "<system_prompt>\n" .. system_prompt .. "\n</system_prompt>"
   for _, p in ipairs(llm_paths) do
+    ---@diagnostic disable-next-line: undefined-field
     local attributes = vim.loop.fs_stat(p)
     if attributes and attributes.type == "directory" then
       error("Expected file path but got directory: " .. p)
@@ -61,4 +66,3 @@ function System_prompt_with_llm_files(llm_paths, system_prompt)
   end
   return files_string
 end
-
