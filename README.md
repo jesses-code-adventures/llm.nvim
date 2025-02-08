@@ -48,6 +48,8 @@ return {
             { '<leader>lc', function() require('llm').help() end, { desc = 'llm chat' }, { mode = "n" } },
             -- use .models() to select your model, and toggle the reasoning window display
             { '<leader>lm', function() require('llm').models() end, { desc = 'llm model selector' } },
+            -- use .chat() to open a sidepanel with a markdown file for chatting, and a small file allowing you to link source code for the llm to receive as context
+            { '<leader>lm', function() require('llm').chat() end, { desc = 'llm model selector' } },
         },
     }
 }
