@@ -1,47 +1,90 @@
-function Open_floating_window(floating_buf, floating_win)
-  if floating_buf == nil then
-    floating_buf = vim.api.nvim_create_buf(false, true)
-    vim.bo[floating_buf].modifiable = false
+local function open_floating_window(title, buf, win, relative_win, col, row, width, height, enter)
+  if win ~= nil and buf ~= nil then
+    return { buf, win }
   end
-  if floating_win == nil then
-    local wins = vim.api.nvim_tabpage_list_wins(0)
-    local leftmost_win = nil
-    local min_col = math.huge
-    for _, win in ipairs(wins) do
-      local buf = vim.api.nvim_win_get_buf(win)
-      local buf_name = vim.api.nvim_buf_get_name(buf)
-      local filename = vim.fn.fnamemodify(buf_name, ':t')
-      if filename == 'chat.md' or filename == '.llmfiles' then
-        goto continue
-      end
-      local pos = vim.api.nvim_win_get_position(win)
-      if pos[2] < min_col then
-        min_col = pos[2]
-        leftmost_win = win
-      end
-      ::continue::
-    end
-    if leftmost_win == nil then
-      error("expected to find a window to float the reasoning window on")
-    end
-    local width = math.floor(vim.api.nvim_win_get_width(leftmost_win) * 0.4)
-    local height = math.floor(vim.api.nvim_win_get_height(leftmost_win) * 0.6)
-    floating_win = vim.api.nvim_open_win(floating_buf, false, {
-      relative = 'win',
-      win = leftmost_win,
-      anchor = 'NE',
-      width = width,
-      height = height,
-      col = vim.api.nvim_win_get_width(leftmost_win) - 1,
-      row = 0,
-      style = 'minimal',
-      border = 'rounded',
-      title = 'Reasoning',
-      title_pos = 'center'
-    })
-    vim.wo[floating_win].wrap = true
+  if buf == nil then
+    error("expect a buf")
   end
-  return {floating_buf, floating_win}
+  win = vim.api.nvim_open_win(buf, enter, {
+    relative = relative_win and 'win' or 'editor',
+    win = relative_win,
+    anchor = relative_win and 'NE' or nil,
+    width = width,
+    height = height,
+    col = col,
+    row = row,
+    style = 'minimal',
+    border = 'rounded',
+    title = title,
+    title_pos = 'center'
+  })
+  vim.wo[win].wrap = true
+  return { buf, win }
+end
+
+
+local function get_code_win()
+  local wins = vim.api.nvim_tabpage_list_wins(0)
+  local relative_win = nil
+  local min_col = math.huge
+  for _, this_win in ipairs(wins) do
+    local this_buf = vim.api.nvim_win_get_buf(this_win)
+    local this_buf_name = vim.api.nvim_buf_get_name(this_buf)
+    local filename = vim.fn.fnamemodify(this_buf_name, ':t')
+    if filename == 'chat.md' or filename == '.llmfiles' then
+      goto continue
+    end
+    local pos = vim.api.nvim_win_get_position(this_win)
+    if pos[2] < min_col then
+      min_col = pos[2]
+      relative_win = this_win
+    end
+    ::continue::
+  end
+  if relative_win == nil then
+    error("expected to find a relative window to float the reasoning window on")
+  end
+  return relative_win
+end
+
+--- buf and win can be undefined, in which case a new reasoning window will be created
+--- if they aren't undefined, we'll atttach and return immediately
+function Open_reasoning_window(buf, win)
+  if buf ~= nil and vim.api.nvim_buf_is_valid(buf) and win ~= nil and vim.api.nvim_win_is_valid(win) then
+    vim.api.nvim_set_current_win(win)
+    vim.api.nvim_set_current_buf(buf)
+    return { buf, win }
+  end
+  if buf == nil then
+    buf = vim.api.nvim_create_buf(false, true)
+    vim.bo[buf].modifiable = false
+  end
+  local relative_win = get_code_win()
+  local width = math.floor(vim.api.nvim_win_get_width(relative_win) * 0.4)
+  local height = math.floor(vim.api.nvim_win_get_height(relative_win) * 0.6)
+  local col = vim.api.nvim_win_get_width(relative_win) - 1
+  local row = 0
+  return open_floating_window("Reasoning", buf, win, relative_win, col, row, width, height, false)
+end
+
+function Select_model(buf, win, models, selectModelCallback)
+  if buf == nil or not vim.api.nvim_buf_is_valid(buf) then
+    buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(buf, 0, 0, false, models)
+    vim.bo[buf].modifiable = false
+    vim.keymap.set('n', '<CR>', function() selectModelCallback() end, { buffer = buf, noremap = true, silent = true })
+    vim.api.nvim_buf_set_keymap(buf, 'n', 'q', ':bwipeout<CR>', { noremap = true, silent = true })
+  end
+  if win == nil or not vim.api.nvim_win_is_valid(win) then
+    local editor_width = vim.o.columns
+    local editor_height = vim.o.lines - vim.o.cmdheight
+    local target_width = 40
+    local target_height = 8
+    local col = math.floor((editor_width - target_width) / 2)
+    local row = math.floor((editor_height - target_height) / 2)
+    return open_floating_window("Select Model", buf, win, nil, col, row, target_width, target_height, true)
+  end
+  return { buf, win }
 end
 
 function Write_floating_content(content, floating_buf, floating_win)
@@ -76,5 +119,5 @@ function Clear_floating_display(floating_buf, floating_win)
   if floating_buf and vim.api.nvim_buf_is_valid(floating_buf) then
     vim.api.nvim_buf_delete(floating_buf, { force = true })
   end
-  return {nil, nil}
+  return { nil, nil }
 end
