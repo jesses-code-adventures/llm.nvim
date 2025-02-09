@@ -17,6 +17,8 @@ local M = {
   _reasoning_buf = nil,
   _settings_win = nil,
   _settings_buf = nil,
+  _chat_win = nil,
+  _chat_buf = nil,
 }
 
 local function validate_model(model, available, fail_msg)
@@ -39,12 +41,16 @@ end
 function M._validate_settings()
   local available = Available_models(M.excluded_providers)
 
-  local default_fail_msg = "default model isn't provided, it may not exist or you may have the provider excluded. available models: " .. vim.inspect(available) .. ", default model: " .. M.default_model
+  local default_fail_msg =
+  "default model isn't provided, it may not exist or you may have the provider excluded. available models: " ..
+  vim.inspect(available) .. ", default model: " .. M.default_model
   validate_model(M.default_model, available, default_fail_msg)
 
   if not M.model or M.model == "" then return end
 
-  local model_fail_msg = "selected model isn't provided, it may not exist or you may have the provider excluded. available models: " .. vim.inspect(available) .. ", selected model: " .. M.model
+  local model_fail_msg =
+  "selected model isn't provided, it may not exist or you may have the provider excluded. available models: " ..
+  vim.inspect(available) .. ", selected model: " .. M.model
   validate_model(M.model, available, model_fail_msg)
 end
 
@@ -80,6 +86,11 @@ function M._settings_bufwin_fn(f)
   M._settings_buf, M._settings_win = bufwin[1], bufwin[2]
 end
 
+function M._chat_bufwin_fn(f)
+  local bufwin = f()
+  M._chat_buf, M._chat_win, M._llmfiles_buf, M._llmfiles_win = bufwin[1], bufwin[2], bufwin[3], bufwin[4]
+end
+
 local function parse_and_handle_data(line, curr_event_state, handle_data_fn, opts, extmark_id)
   local event = line:match('^event: (.+)$')
   if event then
@@ -110,7 +121,7 @@ function M._request_and_stream(opts, system_prompt)
     M._reasoning_bufwin_fn(Clear_floating_display())
   end
 
----@diagnostic disable-next-line: missing-fields
+  ---@diagnostic disable-next-line: missing-fields
   active_job = Job:new({
     command = 'curl',
     args = args,
@@ -174,7 +185,8 @@ function M._handle_prompt(help)
 end
 
 function M._select_model_fn(selected_model)
-  M.model = selected_model or Available_models(M.excluded_providers)[vim.api.nvim_win_get_cursor(vim.api.nvim_get_current_win())[1]]
+  M.model = selected_model or
+  Available_models(M.excluded_providers)[vim.api.nvim_win_get_cursor(vim.api.nvim_get_current_win())[1]]
   LlmAppPrint("set model to [" .. M.model .. "]")
   M._update_settings(Write_selected_model(M._storage_dir, M.model, M.show_reasoning))
 end
@@ -198,22 +210,29 @@ function M.models()
   if M._settings_buf and not vim.api.nvim_buf_is_valid(M._settings_buf) then
     M._settings_buf = nil
   end
-  M._settings_bufwin_fn(function() 
+  M._settings_bufwin_fn(function()
     return Select_model(M._settings_buf, M._settings_win, Available_models(M.excluded_providers),
       M._select_model_fn, M._toggle_reasoning_window_fn, M.picker)
   end)
 end
 
 function M.chat()
-  vim.cmd([[
-    vsplit
-    wincmd l
-    vertical resize 60
-    e ']] .. Get_hashed_project_path(M._storage_dir, M.chat_name:gsub("^set%swrap", "")) .. [['
-    setlocal wrap
-    split
-    resize 5
-    e ]] .. Get_hashed_project_path(M._storage_dir, M.llmfiles_name))
+  local chat_path = Get_hashed_project_path(M._storage_dir, M.chat_name)
+  local llmfiles_path = Get_hashed_project_path(M._storage_dir, M.llmfiles_name)
+
+  if M._chat_buf == nil or M._chat_win == nil then
+    M._chat_bufwin_fn(function() return New_chat_panel(chat_path, llmfiles_path) end)
+  else
+    if vim.api.nvim_get_current_win() == M._chat_win or vim.api.nvim_get_current_win() == M._llmfiles_win then
+      vim.api.nvim_win_close(M._chat_win, true)
+      vim.api.nvim_win_close(M._llmfiles_win, true)
+      M._chat_win = nil
+      M._llmfiles_win = nil
+      return
+    end
+  end
+
+  vim.api.nvim_set_current_win(M._chat_win)
 end
 
 return M

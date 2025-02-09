@@ -27,9 +27,9 @@ return {
     {
         "jesses-code-adventurs/llm.nvim",
         dependencies = { 'nvim-lua/plenary.nvim' },
-        picker = 'telescope', -- set to nil, if you prefer not to use telescope
-        excluded_providers = { 'openai' }, -- options: openai, deepseek, google, anthropic. any provider not in this list should have a corresponding API_KEY in the env
         opts = {
+            excluded_providers = { 'openai' }, -- options: openai, deepseek, google, anthropic. any provider not in this list should have a corresponding API_KEY in the env
+            picker = 'telescope', -- set to nil, if you prefer not to use telescope
             replace_prompt =
             'You should replace the code that you are sent, only following the comments. Do not talk at all. Only output valid code. Do not provide any backticks that surround the code. Never ever output backticks like this ```. Any comment that is asking you for something should be removed after you satisfy them. Other comments should left alone. Do not output backticks. Include a newline ("\n") at the beginning of any answer..',
             help_prompt =
@@ -44,8 +44,8 @@ return {
             { '<leader>lh', function() require('llm').help() end, mode = "v", { desc = 'llm helpful response' } },
             -- use .models() to select your model, and toggle the reasoning window display
             { '<leader>lm', function() require('llm').models() end, { desc = 'llm model selector' } },
-            -- use .chat() to open a sidepanel with a markdown file for chatting, and a small file allowing you to link source code for the llm to receive as context
-            { '<leader>lc', function() require('llm').chat() end, { desc = 'llm chat window' } },
+            -- use .chat() to open a sidepanel with a markdown file for chatting, and a small file allowing you to link source code for the llm to receive as context. call it again to close the chat panel.
+            { '<leader>lc', function() require('llm').chat() end, { desc = 'llm toggle chat window' } },
         },
     }
 }

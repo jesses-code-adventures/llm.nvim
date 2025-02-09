@@ -68,7 +68,6 @@ end
 
 function Select_model(buf, win, models, select_model_callback, show_reasoning_callback, picker)
   -- TODO: try snacks picker
-  print(picker)
   if pcall(require, 'telescope') and picker == 'telescope' then
     local pickers = require('telescope.pickers')
     local finders = require('telescope.finders')
@@ -153,4 +152,23 @@ function Clear_floating_display(floating_buf, floating_win)
     vim.api.nvim_buf_delete(floating_buf, { force = true })
   end
   return { nil, nil }
+end
+
+function New_chat_panel(chat_path, llmfiles_path)
+  vim.cmd('vsplit')
+  vim.cmd('wincmd l')
+  vim.cmd('vertical resize 60')
+
+  vim.cmd('e ' .. chat_path)
+  local chat_buf = vim.api.nvim_get_current_buf()
+  local chat_win = vim.api.nvim_get_current_win()
+  vim.wo[chat_win].wrap = true
+
+  vim.cmd('split')
+  vim.cmd('resize 5')
+  vim.cmd('e ' .. llmfiles_path)
+  local llmfiles_buf = vim.api.nvim_get_current_buf()
+  local llmfiles_win = vim.api.nvim_get_current_win()
+
+  return {chat_buf, chat_win, llmfiles_buf, llmfiles_win}
 end
