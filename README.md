@@ -21,8 +21,9 @@ The following api key names are used for the supported providers.
 ```txt
 OPENAI_API_KEY
 ANTHROPIC_API_KEY
-GEMINI_API_KEY
+GOOGLE_API_KEY
 DEEPSEEK_API_KEY
+GROQ_API_KEY
 ```
 
 ## lazy config
@@ -32,6 +33,7 @@ return {
     {
         "jesses-code-adventurs/llm.nvim",
         dependencies = { 'nvim-lua/plenary.nvim' },
+        excluded_providers = { 'openai' }, -- options: openai, deepseek, google, anthropic. any provider not in this list should have a corresponding API_KEY in the env
         opts = {
             replace_prompt =
             'You should replace the code that you are sent, only following the comments. Do not talk at all. Only output valid code. Do not provide any backticks that surround the code. Never ever output backticks like this ```. Any comment that is asking you for something should be removed after you satisfy them. Other comments should left alone. Do not output backticks. Include a newline ("\n") at the beginning of any answer..',
@@ -45,11 +47,10 @@ return {
             -- note: i prefer these when writing in chat mode
             { '<leader>lh', function() require('llm').help() end, { desc = 'llm helpful response' }, { mode = "n" } },
             { '<leader>lh', function() require('llm').help() end, { desc = 'llm helpful response' }, { mode = "n" } },
-            { '<leader>lc', function() require('llm').help() end, { desc = 'llm chat' }, { mode = "n" } },
             -- use .models() to select your model, and toggle the reasoning window display
             { '<leader>lm', function() require('llm').models() end, { desc = 'llm model selector' } },
             -- use .chat() to open a sidepanel with a markdown file for chatting, and a small file allowing you to link source code for the llm to receive as context
-            { '<leader>lm', function() require('llm').chat() end, { desc = 'llm model selector' } },
+            { '<leader>lc', function() require('llm').chat() end, { desc = 'llm chat' } },
         },
     }
 }

@@ -1,5 +1,9 @@
 local Job = require 'plenary.job'
 
+function LlmAppPrint(message)
+  print('LLM: ' .. message)
+end
+
 function String_startswith(v, sub)
   if v:find("^" .. sub:gsub("(%W)", "%%%1")) then
     return true
@@ -7,18 +11,9 @@ function String_startswith(v, sub)
   return false
 end
 
-function Model_to_provider(v)
-  v = string.lower(v)
-  if String_startswith(v, "claude") then
-    return 'anthropic'
-  elseif String_startswith(v, "gpt") then
-    return 'openai'
-  elseif String_startswith(v, 'deepseek') then
-    return 'deepseek'
-  elseif String_startswith(v, 'gemini') then
-    return 'gemini'
-  end
-  error("no provider for model [" .. v .. "]")
+function Strip_string(input, chars)
+  chars = chars or "%s" -- default to whitespace
+  return input:match("^[" .. chars .. "]*(.-)[" .. chars .. "]*$") or ""
 end
 
 function Read_json(path)
@@ -49,7 +44,7 @@ function Write_json(contents, path)
     writer = json_data,
     on_exit = function(_, return_val)
       if return_val ~= 0 then
-        print("Failed to write to file: " .. path)
+        LlmAppPrint("Failed to write to file: " .. path)
       end
     end,
   }):start()

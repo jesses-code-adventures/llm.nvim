@@ -67,28 +67,55 @@ function Open_reasoning_window(buf, win)
 end
 
 function Select_model(buf, win, models, select_model_callback, show_reasoning_callback)
-  if buf == nil or not vim.api.nvim_buf_is_valid(buf) then
-    buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_lines(buf, 0, 0, false, models)
-    vim.bo[buf].modifiable = false
-    vim.keymap.set('n', '<CR>', function()
-      select_model_callback()
-      vim.api.nvim_win_close(0, true)
-    end, { buffer = buf, noremap = true, silent = true })
-    vim.keymap.set('n', 't', function() show_reasoning_callback() end, { buffer = buf, noremap = true, silent = true })
-    vim.api.nvim_buf_set_keymap(buf, 'n', 'q', ':bwipeout<CR>', { noremap = true, silent = true })
-    vim.api.nvim_buf_set_keymap(buf, 'n', '<ESC>', ':bwipeout<CR>', { noremap = true, silent = true })
+  -- TODO: try snacks picker
+  if pcall(require, 'telescope') then
+    local pickers = require('telescope.pickers')
+    local finders = require('telescope.finders')
+    local conf = require('telescope.config').values
+    local actions = require('telescope.actions')
+    local action_state = require('telescope.actions.state')
+
+    pickers.new({}, {
+      prompt_title = 'Select Model',
+      finder = finders.new_table({
+        results = models
+      }),
+      sorter = conf.generic_sorter({}),
+      attach_mappings = function(prompt_bufnr)
+        actions.select_default:replace(function()
+          actions.close(prompt_bufnr)
+          local selection = action_state.get_selected_entry()
+          select_model_callback(selection[1])
+        end)
+        return true
+      end,
+    }):find()
+    return { nil, nil }
+  else
+    if buf == nil or not vim.api.nvim_buf_is_valid(buf) then
+      buf = vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_lines(buf, 0, 0, false, models)
+      vim.bo[buf].modifiable = false
+      vim.keymap.set('n', '<CR>', function()
+        select_model_callback()
+        vim.api.nvim_win_close(0, true)
+      end, { buffer = buf, noremap = true, silent = true })
+      vim.keymap.set('n', 't', function() show_reasoning_callback() end, { buffer = buf, noremap = true, silent = true })
+      vim.api.nvim_buf_set_keymap(buf, 'n', 'q', ':bwipeout<CR>', { noremap = true, silent = true })
+      vim.api.nvim_buf_set_keymap(buf, 'n', '<ESC>', ':bwipeout<CR>', { noremap = true, silent = true })
+    end
+    if win == nil or not vim.api.nvim_win_is_valid(win) then
+      local editor_width = vim.o.columns
+      local editor_height = vim.o.lines - vim.o.cmdheight
+      local target_width = 80
+      local target_height = 20
+      local col = math.floor((editor_width - target_width) / 2)
+      local row = math.floor((editor_height - target_height) / 2)
+      return open_floating_window("Select Model", "⏎ - select, t - toggle reasoning window display, q - quit", buf, win,
+        nil, col, row, target_width, target_height, true)
+    end
+    return { buf, win }
   end
-  if win == nil or not vim.api.nvim_win_is_valid(win) then
-    local editor_width = vim.o.columns
-    local editor_height = vim.o.lines - vim.o.cmdheight
-    local target_width = 80
-    local target_height = 8
-    local col = math.floor((editor_width - target_width) / 2)
-    local row = math.floor((editor_height - target_height) / 2)
-    return open_floating_window("Select Model", "⏎ - select, t - toggle reasoning window display, q - quit", buf, win, nil, col, row, target_width, target_height, true)
-  end
-  return { buf, win }
 end
 
 function Write_floating_content(content, floating_buf, floating_win)
