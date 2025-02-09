@@ -19,11 +19,11 @@ Add your API keys to your env (export it in zshrc or bashrc).
 The following api key names are used for the supported providers.
 
 ```txt
-OPENAI_API_KEY
 ANTHROPIC_API_KEY
-GOOGLE_API_KEY
 DEEPSEEK_API_KEY
+GOOGLE_API_KEY
 GROQ_API_KEY
+OPENAI_API_KEY
 ```
 
 ## lazy config
@@ -42,15 +42,15 @@ return {
         },
         keys = {
             -- note: i prefer use these directly in the file i'm editing
-            { '<leader>lr', function() require('llm').replace() end, { desc = 'llm replace codeblock' }, { mode = "n" } },
-            { '<leader>lr', function() require('llm').replace() end, { desc = 'llm replace codeblock' }, { mode = "v" } },
+            { '<leader>lr', function() require('llm').replace() end, mode = "n", { desc = 'llm replace codeblock' } },
+            { '<leader>lr', function() require('llm').replace() end, mode = "v", { desc = 'llm replace codeblock' } },
             -- note: i prefer these when writing in chat mode
-            { '<leader>lh', function() require('llm').help() end, { desc = 'llm helpful response' }, { mode = "n" } },
-            { '<leader>lh', function() require('llm').help() end, { desc = 'llm helpful response' }, { mode = "n" } },
+            { '<leader>lh', function() require('llm').help() end, mode = "n", { desc = 'llm helpful response' } },
+            { '<leader>lh', function() require('llm').help() end, mode = "v", { desc = 'llm helpful response' } },
             -- use .models() to select your model, and toggle the reasoning window display
             { '<leader>lm', function() require('llm').models() end, { desc = 'llm model selector' } },
             -- use .chat() to open a sidepanel with a markdown file for chatting, and a small file allowing you to link source code for the llm to receive as context
-            { '<leader>lc', function() require('llm').chat() end, { desc = 'llm chat' } },
+            { '<leader>lc', function() require('llm').chat() end, { desc = 'llm chat window' } },
         },
     }
 }
