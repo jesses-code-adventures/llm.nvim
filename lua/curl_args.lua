@@ -72,7 +72,6 @@ local function make_deepseek_spec_curl_args(opts, prompt, system_prompt)
   return args
 end
 
--- TODO: fix gemini
 local function make_gemini_spec_curl_args(opts, prompt, system_prompt)
   local model = truncate_provider_prefix(opts.model, Model_to_provider(opts.model))
   local url = 'https://generativelanguage.googleapis.com/v1beta/models/' .. model .. ":streamGenerateContent?key=" .. (opts.api_key_name and get_api_key(opts.api_key_name))
