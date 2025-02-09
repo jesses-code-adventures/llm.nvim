@@ -2,17 +2,11 @@
 
 This is my fork of yacine's [dingllm.nvim](https://github.com/yacineMTB/dingllm.nvim), which adds a couple of features and takes a different approach to configuration.
 
-# Credits
+[See all credits](#credits).
 
-This extension woudln't exist if it weren't for https://github.com/melbaldove/llm.nvim
+## setup
 
-Yacine diff'd on a fork of it until it was basically a rewrite. Thanks @melbaldove!
-
-I then did the same to [yacine's plugin](https://github.com/yacineMTB/dingllm.nvim), and the cycle continues.
-
-# setup
-
-## api keys
+### api keys
 
 Add your API keys to your env (export it in zshrc or bashrc).
 
@@ -26,7 +20,7 @@ GROQ_API_KEY
 OPENAI_API_KEY
 ```
 
-## lazy config
+### lazy config
 
 ````lua
 return {
@@ -56,11 +50,11 @@ return {
 }
 ````
 
-# usage
+## usage
 
 there are two main workflows i use with this plugin, replacing code directly and chatting with my codebase.
 
-## replacing code directly
+### replacing code directly
 
 it's easiest to go into visual line mode, and select a block of code with a prompt above or below it (i just type the prompt directly inline in the file, but you could put it in a comment), then run:
 
@@ -72,7 +66,7 @@ you can also run this in normal mode, and the llm will receive the contents of t
 
 see the [lazy config](#lazy-config) for an approach to keymapping this function.
 
-## helpful chat
+### helpful chat
 
 In this case the llm will respond conversationally, so it can be nicer to use a markdown file for the project in which you can chat with your selected model. feel free to keep chat history in there so the model can retain context, if it makes sense for you. when you change topic and don't need the context any more, just delete the contents in your markdown file and start again.
 
@@ -84,3 +78,11 @@ require('llm').help() -- asks the llm to respond conversationally
 ```
 
 see the [lazy config](#lazy-config) for an approach to keymapping these functions.
+
+## Credits
+
+This extension woudln't exist if it weren't for https://github.com/melbaldove/llm.nvim
+
+Yacine diff'd on a fork of it until it was basically a rewrite. Thanks @melbaldove!
+
+I then did the same to [yacine's plugin](https://github.com/yacineMTB/dingllm.nvim), and the cycle continues.
