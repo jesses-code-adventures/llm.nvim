@@ -4,14 +4,12 @@ MODELS = {
   'anthropic-claude-3-5-sonnet-20241022',
   'deepseek-deepseek-chat',
   'deepseek-deepseek-reasoner',
-  'google-gemini-2.0-flash', --TODO: fix google
-  'google-gemini-2.0-flash-lite-preview-02-05', --TODO: fix google
-  'groq-deepseek-r1-distill-llama-70b',
+  -- 'google-gemini-2.0-flash', --TODO: fix google
+  -- 'google-gemini-2.0-flash-lite-preview-02-05', --TODO: fix google
   'groq-llama-3.1-8b-instant',
   'groq-llama-3.2-1b-preview',
   'groq-llama-3.2-3b-preview',
-  'groq-llama-guard-3-8b',
-  'groq-llama3-70b-8192',
+  -- 'groq-llama-guard-3-8b',
   'groq-llama3-8b-8192',
   'groq-mixtral-8x7b-32768',
   'openai-gpt-4o',

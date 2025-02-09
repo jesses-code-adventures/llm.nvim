@@ -88,7 +88,6 @@ function M._request_and_stream(opts, system_prompt)
   local curr_event_state = nil
 
   local function parse_and_call(line)
-    print(line)
     local event = line:match '^event: (.+)$'
     if event then
       curr_event_state = event
