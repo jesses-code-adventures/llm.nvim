@@ -8,6 +8,7 @@ require("prompt")
 require("utils")
 local Job = require 'plenary.job'
 
+local ns_id = vim.api.nvim_create_namespace('dingllm')
 local group = vim.api.nvim_create_augroup('LLM_AutoGroup', { clear = true })
 local active_job = nil
 
@@ -87,21 +88,27 @@ function M._request_and_stream(opts, system_prompt)
   local args = Make_curl_args(opts.model)(opts, prompt, system_prompt)
   local curr_event_state = nil
 
+  -- get the curent cursor location and use it as the target to write, so the user can move cursor around
+  local crow, _ = unpack(vim.api.nvim_win_get_cursor(0))
+  local extmark_id = vim.api.nvim_buf_set_extmark(0, ns_id, crow - 1, -1, {})
+
   local function parse_and_call(line)
     local event = line:match '^event: (.+)$'
     if event then
       curr_event_state = event
       return
     end
+
     local data_match = line:match '^data: (.+)$'
     if data_match then
-      handle_data_fn(data_match, curr_event_state, opts.show_reasoning, Write_string_at_cursor,
+      handle_data_fn(data_match, curr_event_state, opts.show_reasoning, function(s) Write_string_at_extmark(s, extmark_id, ns_id) end,
         function(s) Write_floating_content(s, M._reasoning_buf, M._reasoning_win) end)
       return
     end
+
     local stripped = Strip_string(line)
     if String_startswith(stripped, '"text": "') then
-      handle_data_fn(stripped, curr_event_state, opts.show_reasoning, Write_string_at_cursor,
+      handle_data_fn(stripped, curr_event_state, opts.show_reasoning, function(s) Write_string_at_extmark(s, extmark_id, ns_id) end,
         function(s) Write_floating_content(s, M._reasoning_buf, M._reasoning_win) end)
       return
     end

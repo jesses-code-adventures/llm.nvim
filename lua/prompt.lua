@@ -47,6 +47,18 @@ function Get_visual_selection()
   end
 end
 
+function Write_string_at_extmark(str, extmark_id, ns_id)
+  vim.schedule(function()
+    if str == vim.NIL then
+      return
+    end
+    local extmark = vim.api.nvim_buf_get_extmark_by_id(0, ns_id, extmark_id, { details = false })
+    local row, col = extmark[1], extmark[2]
+    local lines = vim.split(str, '\n')
+    vim.api.nvim_buf_set_text(0, row, col, row, col, lines)
+  end)
+end
+
 function Write_string_at_cursor(str)
   vim.schedule(function()
     if str == vim.NIL then
@@ -86,8 +98,7 @@ function Get_prompt(opts)
   if visual_lines then
     prompt = table.concat(visual_lines, '\n')
     if replace then
-      vim.api.nvim_command 'normal! d'
-      vim.api.nvim_command 'normal! k'
+      vim.api.nvim_command('normal! c')
     else
       vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>', false, true, true), 'nx', false)
     end
