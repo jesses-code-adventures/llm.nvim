@@ -44,20 +44,13 @@ local function handle_deepseek_reasoning_data(data_stream, _, show_reasoning, wr
   end
 end
 
+-- TODO: this is probably implemented badly
 local function handle_google_spec_data(data_stream, _, _, write_fn, _)
   if data_stream == '[' then
     return
   end
-  -- if data_stream:match '"text":' then
   local json = vim.json.decode(data_stream)
   write_fn(json)
-  -- if json.candidates and json.candidates[1].content.parts[1].text then
-  --   local content = json.candidates[1].content.parts[1].text
-  --   if content then
-  --     write_fn(content)
-  --   end
-  -- end
-  -- end
 end
 
 local function handle_groq_spec_data(data_stream, _, _, write_fn, _)
@@ -74,7 +67,6 @@ local function handle_groq_spec_data(data_stream, _, _, write_fn, _)
     end
   end
 end
-
 
 ---@param model string
 function Get_data_fn(model)
