@@ -56,6 +56,10 @@ function M.setup(opts)
   M.default_model = opts.default_model or 'anthropic-claude-3-5-sonnet-20241022'
   M.help_prompt = opts.help_prompt
   M.replace_prompt = opts.replace_prompt
+  if opts.picker ~= nil and opts.picker ~= 'telescope' then
+    error('invalid picker, please pass "telescope" or nil')
+  end
+  M.picker = opts.picker
 
   local settings = Get_settings(M._storage_dir)
   if settings then
@@ -196,7 +200,7 @@ function M.models()
   end
   M._settings_bufwin_fn(function() 
     return Select_model(M._settings_buf, M._settings_win, Available_models(M.excluded_providers),
-      M._select_model_fn, M._toggle_reasoning_window_fn)
+      M._select_model_fn, M._toggle_reasoning_window_fn, M.picker)
   end)
 end
 

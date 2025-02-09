@@ -66,9 +66,10 @@ function Open_reasoning_window(buf, win)
   return open_floating_window("Reasoning", "ESC - exit", buf, win, relative_win, col, row, width, height, false)
 end
 
-function Select_model(buf, win, models, select_model_callback, show_reasoning_callback)
+function Select_model(buf, win, models, select_model_callback, show_reasoning_callback, picker)
   -- TODO: try snacks picker
-  if pcall(require, 'telescope') then
+  print(picker)
+  if pcall(require, 'telescope') and picker == 'telescope' then
     local pickers = require('telescope.pickers')
     local finders = require('telescope.finders')
     local conf = require('telescope.config').values

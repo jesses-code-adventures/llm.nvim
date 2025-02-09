@@ -27,6 +27,7 @@ return {
     {
         "jesses-code-adventurs/llm.nvim",
         dependencies = { 'nvim-lua/plenary.nvim' },
+        picker = 'telescope', -- set to nil, if you prefer not to use telescope
         excluded_providers = { 'openai' }, -- options: openai, deepseek, google, anthropic. any provider not in this list should have a corresponding API_KEY in the env
         opts = {
             replace_prompt =
