@@ -78,7 +78,7 @@ local function make_gemini_spec_curl_args(opts, prompt, system_prompt)
   local url = 'https://generativelanguage.googleapis.com/v1beta/models/' .. model .. ":streamGenerateContent?key=" .. (opts.api_key_name and get_api_key(opts.api_key_name))
   local data = {
     system_instruction = {
-      text = system_prompt,
+      parts = { text = system_prompt },
     },
     contents = { { parts = { { text = prompt } } } },
     generationConfig = {
@@ -124,7 +124,7 @@ function Make_curl_args(model)
   if provider == 'openai' then
     return make_openai_spec_curl_args
   end
-  if provider == 'gemini' then
+  if provider == 'google' then
     return make_gemini_spec_curl_args
   end
   if provider == 'groq' then

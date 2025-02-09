@@ -76,7 +76,8 @@ function Select_model(buf, win, models, select_model_callback, show_reasoning_ca
     local action_state = require('telescope.actions.state')
 
     pickers.new({}, {
-      prompt_title = 'Select Model',
+      prompt_title = 'Find a Model',
+      results_title = 'LLM Models',
       finder = finders.new_table({
         results = models
       }),

@@ -44,33 +44,20 @@ local function handle_deepseek_reasoning_data(data_stream, _, show_reasoning, wr
   end
 end
 
--- TODO: use, if we choose to handle the whole json object in handle_google_spec_data
-local function get_google_response_text(json)
-  if not json.candidates then
-    return ""
+local function handle_google_spec_data(data_stream, _, _, write_fn, _)
+  if data_stream == '[' then
+    return
   end
-  if not json.candidates[1] then
-    return ""
-  end
-  if not json.candidates[1].content then
-    return ""
-  end
-  if not json.candidates[1].content.parts then
-    return ""
-  end
-  if not json.candidates[1].content.parts[1] then
-    return ""
-  end
-  return json.candidates[1].content.parts[1].text
-end
-
--- TODO: fix gemini
-local function handle_google_spec_data(data_stream, event_state, _, write_fn, _)
-  if data_stream then
-    write_fn(vim.json.decode('{' .. data_stream .. '}').text)
-  else
-    print("no choices found")
-  end
+  -- if data_stream:match '"text":' then
+  local json = vim.json.decode(data_stream)
+  write_fn(json)
+  -- if json.candidates and json.candidates[1].content.parts[1].text then
+  --   local content = json.candidates[1].content.parts[1].text
+  --   if content then
+  --     write_fn(content)
+  --   end
+  -- end
+  -- end
 end
 
 local function handle_groq_spec_data(data_stream, _, _, write_fn, _)

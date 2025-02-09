@@ -82,7 +82,7 @@ local function parse_and_handle_data(line, curr_event_state, handle_data_fn, opt
     return event
   end
 
-  local data = line:match('^data: (.+)$') or (String_startswith(Strip_string(line), '"text": "') and Strip_string(line))
+  local data = line:match('^data: (.+)$') or line:match('"candidates": (.+)$') or line:match('"text": (.+)$')
   if data then
     handle_data_fn(data, curr_event_state, opts.show_reasoning,
       function(s) Write_string_at_extmark(s, extmark_id, ns_id) end,
@@ -163,7 +163,7 @@ function M._handle_prompt(help)
 
   vim.api.nvim_clear_autocmds({ group = group })
   M._request_and_stream(opts, system_prompt)
-  
+
   if opts.show_reasoning then
     M._reasoning_bufwin_fn(function() return Open_reasoning_window(M._reasoning_buf, M._reasoning_win) end)
   end
@@ -205,8 +205,8 @@ function M.chat()
     vsplit
     wincmd l
     vertical resize 60
-    e ]] .. Get_hashed_project_path(M._storage_dir, M.chat_name) .. [[
-    set wrap
+    e ']] .. Get_hashed_project_path(M._storage_dir, M.chat_name:gsub("^set%swrap", "")) .. [['
+    setlocal wrap
     split
     resize 5
     e ]] .. Get_hashed_project_path(M._storage_dir, M.llmfiles_name))
