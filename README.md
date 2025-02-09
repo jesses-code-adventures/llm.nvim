@@ -1,149 +1,89 @@
-<img src="https://github.com/yacineMTB/dingllm.nvim/assets/10282244/d03ef83d-a5ee-4ddb-928f-742172f3c80c" alt="wordart (6)" style="width:200px;height:100px;">
+# llm.nvim
 
-### dingllm.nvim
-Yacine's no frills LLM nvim scripts. free yourself, brothers and sisters
+This is my fork of yacine's [dingllm.nvim](https://github.com/yacineMTB/dingllm.nvim), which adds a couple of features and takes a different approach to configuration.
 
-This is a really light config. I *will* be pushing breaking changes. I recommend reading the code and copying it over - it's really simple.
+[See all credits](#credits).
 
-https://github.com/yacineMTB/dingllm.nvim/assets/10282244/07cf5ace-7e01-46e3-bd2f-5bec3bb019cc
+## setup
 
+### api keys
 
-### Credits
-This extension woudln't exist if it weren't for https://github.com/melbaldove/llm.nvim
+Add your API keys to your env (export it in zshrc or bashrc).
 
-I diff'd on a fork of it until it was basically a rewrite. Thanks @melbaldove!
+The following api key names are used for the supported providers.
 
-The main difference is that this uses events from plenary, rather than a timed async loop. I noticed that on some versions of nvim, melbaldove's extension would deadlock my editor. I suspected nio, so i just rewrote the extension. 
-
-### lazy config
-Add your API keys to your env (export it in zshrc or bashrc) 
-
-```lua
-  {
-    'yacineMTB/dingllm.nvim',
-    dependencies = { 'nvim-lua/plenary.nvim' },
-    config = function()
-      local system_prompt =
-        'You should replace the code that you are sent, only following the comments. Do not talk at all. Only output valid code. Do not provide any backticks that surround the code. Never ever output backticks like this ```. Any comment that is asking you for something should be removed after you satisfy them. Other comments should left alone. Do not output backticks'
-      local helpful_prompt = 'You are a helpful assistant. What I have sent are my notes so far.'
-      local dingllm = require 'dingllm'
-
-
-      local function handle_open_router_spec_data(data_stream)
-        local success, json = pcall(vim.json.decode, data_stream)
-        if success then
-          if json.choices and json.choices[1] and json.choices[1].text then
-            local content = json.choices[1].text
-            if content then
-              dingllm.write_string_at_cursor(content)
-            end
-          end
-        else
-          print("non json " .. data_stream)
-        end
-      end
-
-      local function custom_make_openai_spec_curl_args(opts, prompt)
-        local url = opts.url
-        local api_key = opts.api_key_name and os.getenv(opts.api_key_name)
-        local data = {
-          prompt = prompt,
-          model = opts.model,
-          temperature = 0.7,
-          stream = true,
-        }
-        local args = { '-N', '-X', 'POST', '-H', 'Content-Type: application/json', '-d', vim.json.encode(data) }
-        if api_key then
-          table.insert(args, '-H')
-          table.insert(args, 'Authorization: Bearer ' .. api_key)
-        end
-        table.insert(args, url)
-        return args
-      end
-
-
-      local function llama_405b_base()
-        dingllm.invoke_llm_and_stream_into_editor({
-          url = 'https://openrouter.ai/api/v1/chat/completions',
-          model = 'meta-llama/llama-3.1-405b',
-          api_key_name = 'OPEN_ROUTER_API_KEY',
-          max_tokens = '128',
-          replace = false,
-        }, custom_make_openai_spec_curl_args, handle_open_router_spec_data)
-      end
-
-      local function groq_replace()
-        dingllm.invoke_llm_and_stream_into_editor({
-          url = 'https://api.groq.com/openai/v1/chat/completions',
-          model = 'llama-3.1-70b-versatile',
-          api_key_name = 'GROQ_API_KEY',
-          system_prompt = system_prompt,
-          replace = true,
-        }, dingllm.make_openai_spec_curl_args, dingllm.handle_openai_spec_data)
-      end
-
-      local function groq_help()
-        dingllm.invoke_llm_and_stream_into_editor({
-          url = 'https://api.groq.com/openai/v1/chat/completions',
-          model = 'llama-3.1-70b-versatile',
-          api_key_name = 'GROQ_API_KEY',
-          system_prompt = helpful_prompt,
-          replace = false,
-        }, dingllm.make_openai_spec_curl_args, dingllm.handle_openai_spec_data)
-      end
-
-      local function llama405b_replace()
-        dingllm.invoke_llm_and_stream_into_editor({
-          url = 'https://api.lambdalabs.com/v1/chat/completions',
-          model = 'hermes-3-llama-3.1-405b-fp8',
-          api_key_name = 'LAMBDA_API_KEY',
-          system_prompt = system_prompt,
-          replace = true,
-        }, dingllm.make_openai_spec_curl_args, dingllm.handle_openai_spec_data)
-      end
-
-      local function llama405b_help()
-        dingllm.invoke_llm_and_stream_into_editor({
-          url = 'https://api.lambdalabs.com/v1/chat/completions',
-          model = 'hermes-3-llama-3.1-405b-fp8',
-          api_key_name = 'LAMBDA_API_KEY',
-          system_prompt = helpful_prompt,
-          replace = false,
-        }, dingllm.make_openai_spec_curl_args, dingllm.handle_openai_spec_data)
-      end
-
-      local function anthropic_help()
-        dingllm.invoke_llm_and_stream_into_editor({
-          url = 'https://api.anthropic.com/v1/messages',
-          model = 'claude-3-5-sonnet-20241022',
-          api_key_name = 'ANTHROPIC_API_KEY',
-          system_prompt = helpful_prompt,
-          replace = false,
-        }, dingllm.make_anthropic_spec_curl_args, dingllm.handle_anthropic_spec_data)
-      end
-
-      local function anthropic_replace()
-        dingllm.invoke_llm_and_stream_into_editor({
-          url = 'https://api.anthropic.com/v1/messages',
-          model = 'claude-3-5-sonnet-20241022',
-          api_key_name = 'ANTHROPIC_API_KEY',
-          system_prompt = system_prompt,
-          replace = true,
-        }, dingllm.make_anthropic_spec_curl_args, dingllm.handle_anthropic_spec_data)
-      end
-
-      vim.keymap.set({ 'n', 'v' }, '<leader>k', groq_replace, { desc = 'llm groq' })
-      vim.keymap.set({ 'n', 'v' }, '<leader>K', groq_help, { desc = 'llm groq_help' })
-      vim.keymap.set({ 'n', 'v' }, '<leader>L', llama405b_help, { desc = 'llm llama405b_help' })
-      vim.keymap.set({ 'n', 'v' }, '<leader>l', llama405b_replace, { desc = 'llm llama405b_replace' })
-      vim.keymap.set({ 'n', 'v' }, '<leader>I', anthropic_help, { desc = 'llm anthropic_help' })
-      vim.keymap.set({ 'n', 'v' }, '<leader>i', anthropic_replace, { desc = 'llm anthropic' })
-      vim.keymap.set({ 'n', 'v' }, '<leader>o', llama_405b_base, { desc = 'llama base' })
-    end,
-  },
-
+```txt
+ANTHROPIC_API_KEY
+DEEPSEEK_API_KEY
+GOOGLE_API_KEY
+GROQ_API_KEY
+OPENAI_API_KEY
 ```
 
-### Documentation
+### lazy config
 
-read the code dummy
+````lua
+return {
+    {
+        "jesses-code-adventurs/llm.nvim",
+        dependencies = { 'nvim-lua/plenary.nvim' },
+        opts = {
+            excluded_providers = { 'openai' }, -- options: openai, deepseek, google, anthropic. any provider not in this list should have a corresponding API_KEY in the env
+            picker = 'telescope', -- set to nil, if you prefer not to use telescope
+            replace_prompt =
+            'You should replace the code that you are sent, only following the comments. Do not talk at all. Only output valid code. Do not provide any backticks that surround the code. Never ever output backticks like this ```. Any comment that is asking you for something should be removed after you satisfy them. Other comments should left alone. Do not output backticks. Include a newline ("\n") at the beginning of any answer..',
+            help_prompt =
+            'You are a helpful assistant. What I have sent are my notes so far. You are very curt, yet helpful.'
+        },
+        keys = {
+            -- note: i prefer use these directly in the file i'm editing
+            { '<leader>lr', function() require('llm').replace() end, mode = "n", { desc = 'llm replace codeblock' } },
+            { '<leader>lr', function() require('llm').replace() end, mode = "v", { desc = 'llm replace codeblock' } },
+            -- note: i prefer these when writing in chat mode
+            { '<leader>lh', function() require('llm').help() end, mode = "n", { desc = 'llm helpful response' } },
+            { '<leader>lh', function() require('llm').help() end, mode = "v", { desc = 'llm helpful response' } },
+            -- use .models() to select your model, and toggle the reasoning window display
+            { '<leader>lm', function() require('llm').models() end, { desc = 'llm model selector' } },
+            -- use .chat() to open a sidepanel with a markdown file for chatting, and a small file allowing you to link source code for the llm to receive as context. call it again to close the chat panel.
+            { '<leader>lc', function() require('llm').chat() end, { desc = 'llm toggle chat window' } },
+        },
+    }
+}
+````
+
+## usage
+
+there are two main workflows i use with this plugin, replacing code directly and chatting with my codebase.
+
+### replacing code directly
+
+it's easiest to go into visual line mode, and select a block of code with a prompt above or below it (i just type the prompt directly inline in the file, but you could put it in a comment), then run:
+
+```lua
+require('llm').replace()
+```
+
+you can also run this in normal mode, and the llm will receive the contents of the file up to the cursor, then generate code based on that input.
+
+see the [lazy config](#lazy-config) for an approach to keymapping this function.
+
+### helpful chat
+
+In this case the llm will respond conversationally, so it can be nicer to use a markdown file for the project in which you can chat with your selected model. feel free to keep chat history in there so the model can retain context, if it makes sense for you. when you change topic and don't need the context any more, just delete the contents in your markdown file and start again.
+
+There is also a smaller split above the markdown window, in which you can keep a list of files whose contents you want to pass as a system prompt. the llm will receive the path to the contents as you enter it, and the contents. This can be useful when working with larger codebases where code is shared across a few key files.
+
+```lua
+require('llm').chat() -- opens the chat window
+require('llm').help() -- asks the llm to respond conversationally
+```
+
+see the [lazy config](#lazy-config) for an approach to keymapping these functions.
+
+## Credits
+
+This extension woudln't exist if it weren't for https://github.com/melbaldove/llm.nvim
+
+Yacine diff'd on a fork of it until it was basically a rewrite. Thanks @melbaldove!
+
+I then did the same to [yacine's plugin](https://github.com/yacineMTB/dingllm.nvim), and the cycle continues.
