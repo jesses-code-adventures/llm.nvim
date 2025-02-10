@@ -49,10 +49,21 @@ local function get_code_win()
 end
 
 function Open_reasoning_window(buf, win)
+  print(buf, win)
   if buf ~= nil and vim.api.nvim_buf_is_valid(buf) and win ~= nil and vim.api.nvim_win_is_valid(win) then
+    print('valid')
     vim.api.nvim_set_current_win(win)
     vim.api.nvim_set_current_buf(buf)
     return { buf, win }
+  end
+  local wins = vim.api.nvim_list_wins()
+  for _, w in ipairs(wins) do
+    local config = vim.api.nvim_win_get_config(w)
+    if config.title and config.title == "Reasoning" then
+      win = w
+      buf = vim.api.nvim_win_get_buf(w)
+      return { buf, win }
+    end
   end
   if buf == nil then
     buf = vim.api.nvim_create_buf(false, true)

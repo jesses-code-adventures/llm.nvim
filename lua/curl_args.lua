@@ -8,7 +8,8 @@ local function get_api_key(name)
   return os.getenv(name)
 end
 
-local function truncate_provider_prefix(model, provider)
+function Truncate_provider_prefix(model)
+  local provider = Model_to_provider(model)
   local escaped_provider = provider:gsub("([^%w])", "%%%1")
   local pattern = "^" .. escaped_provider .. "%-"
   model = string.gsub(model, pattern, "")
@@ -21,7 +22,7 @@ local function make_anthropic_spec_curl_args(opts, prompt, system_prompt)
   local data = {
     system = system_prompt,
     messages = { { role = 'user', content = prompt } },
-    model = truncate_provider_prefix(opts.model, Model_to_provider(opts.model)),
+    model = Truncate_provider_prefix(opts.model),
     stream = true,
     max_tokens = 4096,
   }
@@ -41,7 +42,7 @@ local function make_openai_spec_curl_args(opts, prompt, system_prompt)
   local api_key = opts.api_key_name and get_api_key(opts.api_key_name)
   local data = {
     messages = { { role = 'system', content = system_prompt }, { role = 'user', content = prompt } },
-    model = truncate_provider_prefix(opts.model, Model_to_provider(opts.model)),
+    model = Truncate_provider_prefix(opts.model),
     temperature = 0.7,
     stream = true,
   }
@@ -59,7 +60,7 @@ local function make_deepseek_spec_curl_args(opts, prompt, system_prompt)
   local api_key = opts.api_key_name and get_api_key(opts.api_key_name)
   local data = {
     messages = { { role = 'system', content = system_prompt }, { role = 'user', content = prompt } },
-    model = truncate_provider_prefix(opts.model, Model_to_provider(opts.model)),
+    model = Truncate_provider_prefix(opts.model),
     temperature = 0.0,
     stream = true,
   }
@@ -73,7 +74,7 @@ local function make_deepseek_spec_curl_args(opts, prompt, system_prompt)
 end
 
 local function make_gemini_spec_curl_args(opts, prompt, system_prompt)
-  local model = truncate_provider_prefix(opts.model, Model_to_provider(opts.model))
+  local model = Truncate_provider_prefix(opts.model)
   local url = 'https://generativelanguage.googleapis.com/v1beta/models/' .. model .. ":streamGenerateContent?key=" .. (opts.api_key_name and get_api_key(opts.api_key_name))
   local data = {
     system_instruction = {
@@ -95,7 +96,7 @@ local function make_groq_spec_curl_args(opts, prompt, system_prompt)
   local api_key = opts.api_key_name and get_api_key(opts.api_key_name)
   local data = {
     messages = { { role = 'system', content = system_prompt }, { role = 'user', content = prompt } },
-    model = truncate_provider_prefix(opts.model, Model_to_provider(opts.model)),
+    model = Truncate_provider_prefix(opts.model),
     temperature = 0.2,
     stream = true,
   }

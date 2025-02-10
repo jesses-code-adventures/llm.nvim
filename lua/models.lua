@@ -72,7 +72,7 @@ local function can_reason(model, show_reasoning)
     return false
   end
   for _, m in ipairs(MODELS_CAN_REASON) do
-    if model == m then
+    if Truncate_provider_prefix(model) == m then
       return true
     end
     return false

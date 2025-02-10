@@ -71,14 +71,15 @@ function M.setup(opts)
   if settings then
     M._update_settings(settings)
   else
-    M.show_reasoning = false
     M.model = M.default_model
+    M.show_reasoning = true
   end
 end
 
 function M._reasoning_bufwin_fn(f)
   local bufwin = f()
   M._reasoning_buf, M._reasoning_win = bufwin[1], bufwin[2]
+  print('reasoning buf: ' .. M._reasoning_buf .. ', reasoning win ' .. M._reasoning_win)
 end
 
 function M._settings_bufwin_fn(f)
@@ -91,7 +92,7 @@ function M._chat_bufwin_fn(f)
   M._chat_buf, M._chat_win, M._llmfiles_buf, M._llmfiles_win = bufwin[1], bufwin[2], bufwin[3], bufwin[4]
 end
 
-local function parse_and_handle_data(line, curr_event_state, handle_data_fn, opts, extmark_id)
+local function parse_and_handle_data(line, curr_event_state, handle_data_fn, opts, extmark_id, buf)
   local event = line:match('^event: (.+)$')
   if event then
     return event
@@ -100,12 +101,21 @@ local function parse_and_handle_data(line, curr_event_state, handle_data_fn, opt
   local data = line:match('^data: (.+)$') or line:match('"candidates": (.+)$') or line:match('"text": (.+)$')
   if data then
     handle_data_fn(data, curr_event_state, opts.show_reasoning,
-      function(s) Write_string_at_extmark(s, extmark_id, ns_id) end,
+      function(s) Write_string_at_extmark(s, extmark_id, ns_id, buf) end,
       function(s) Write_floating_content(s, M._reasoning_buf, M._reasoning_win) end)
   end
   return curr_event_state
 end
 
+function M._shutdown_existing_request(job)
+  if not job then
+    return nil
+  end
+  job:shutdown()
+  M._reasoning_bufwin_fn(Clear_floating_display)
+end
+
+--- generic entry point for any prompt to any provider
 function M._request_and_stream(opts, system_prompt)
   local prompt = Get_prompt(opts)
   local handle_data_fn = Get_data_fn(opts.model)
@@ -115,18 +125,24 @@ function M._request_and_stream(opts, system_prompt)
   local crow = unpack(vim.api.nvim_win_get_cursor(0))
   local extmark_id = vim.api.nvim_buf_set_extmark(0, ns_id, crow - 1, -1, {})
 
-  if active_job then
-    active_job:shutdown()
-    active_job = nil
-    M._reasoning_bufwin_fn(Clear_floating_display())
-  end
+  local buf = vim.api.nvim_get_current_buf()
+
+  active_job = M._shutdown_existing_request(active_job)
+
+  vim.api.nvim_create_autocmd('User', {
+    group = group,
+    pattern = 'LLM_Escape',
+    callback = function() M._shutdown_existing_request(active_job) end,
+  })
+
+  vim.keymap.set('n', '<Esc>', ':doautocmd User LLM_Escape<CR>', { noremap = true, silent = true })
 
   ---@diagnostic disable-next-line: missing-fields
   active_job = Job:new({
     command = 'curl',
     args = args,
     on_stdout = function(_, out)
-      curr_event_state = parse_and_handle_data(out, curr_event_state, handle_data_fn, opts, extmark_id)
+      curr_event_state = parse_and_handle_data(out, curr_event_state, handle_data_fn, opts, extmark_id, buf)
     end,
     on_stderr = function(_, err)
       if err and err ~= "" then
@@ -136,6 +152,10 @@ function M._request_and_stream(opts, system_prompt)
       end
     end,
     on_exit = function(j, return_val)
+      vim.schedule(function()
+        vim.api.nvim_clear_autocmds({ group = group })
+        vim.keymap.del('n', '<Esc>')
+      end)
       active_job = nil
       if return_val ~= 0 then
         vim.schedule(function()
@@ -147,20 +167,10 @@ function M._request_and_stream(opts, system_prompt)
     end
   }):start()
 
-  vim.api.nvim_create_autocmd('User', {
-    group = group,
-    pattern = 'LLM_Escape',
-    callback = function()
-      if active_job then
-        active_job:shutdown()
-        LlmAppPrint('streaming cancelled')
-        active_job = nil
-      end
-      M._reasoning_bufwin_fn(Clear_floating_display)
-    end,
-  })
+  if opts.show_reasoning then
+    M._reasoning_bufwin_fn(function() return Open_reasoning_window(M._reasoning_buf, M._reasoning_win) end)
+  end
 
-  vim.keymap.set('n', '<Esc>', ':doautocmd User LLM_Escape<CR>', { noremap = true, silent = true })
   return active_job
 end
 
@@ -178,10 +188,6 @@ function M._handle_prompt(help)
 
   vim.api.nvim_clear_autocmds({ group = group })
   M._request_and_stream(opts, system_prompt)
-
-  if opts.show_reasoning then
-    M._reasoning_bufwin_fn(function() return Open_reasoning_window(M._reasoning_buf, M._reasoning_win) end)
-  end
 end
 
 function M._select_model_fn(selected_model)
@@ -228,11 +234,14 @@ function M.chat()
       vim.api.nvim_win_close(M._llmfiles_win, true)
       M._chat_win = nil
       M._llmfiles_win = nil
+      M._model_display_extmark = nil
       return
     end
   end
 
-  vim.api.nvim_set_current_win(M._chat_win)
+  if M._chat_win ~= nil and vim.api.nvim_win_is_valid(M._chat_win) then
+    vim.api.nvim_set_current_win(M._chat_win)
+  end
 end
 
 return M
