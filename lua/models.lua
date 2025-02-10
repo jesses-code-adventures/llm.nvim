@@ -4,8 +4,8 @@ MODELS = {
   'anthropic-claude-3-5-sonnet-20241022',
   'deepseek-deepseek-chat',
   'deepseek-deepseek-reasoner',
-  'google-gemini-2.0-flash', --TODO: fix google
-  'google-gemini-2.0-flash-lite-preview-02-05', --TODO: fix google
+  'google-gemini-2.0-flash',
+  'google-gemini-2.0-flash-lite-preview-02-05',
   'groq-llama-3.1-8b-instant',
   'groq-llama-3.2-1b-preview',
   'groq-llama-3.2-3b-preview',
@@ -72,7 +72,7 @@ local function can_reason(model, show_reasoning)
     return false
   end
   for _, m in ipairs(MODELS_CAN_REASON) do
-    if model == m then
+    if Truncate_provider_prefix(model) == m then
       return true
     end
     return false

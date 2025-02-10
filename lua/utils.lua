@@ -17,12 +17,11 @@ function Strip_string(input, chars)
 end
 
 function Read_json(path)
-  local file = io.open(path, "r") -- "r" for read mode
+  local file = io.open(path, "r")
   if not file then
-    error("Could not open file: " .. path)
     return nil
   end
-  local content = file:read("*a") -- read the entire file
+  local content = file:read("*a")
   file:close()
 
   local ok, json_data = pcall(vim.fn.json_decode, content)

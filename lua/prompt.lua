@@ -47,15 +47,16 @@ function Get_visual_selection()
   end
 end
 
-function Write_string_at_extmark(str, extmark_id, ns_id)
+function Write_string_at_extmark(str, extmark_id, ns_id, buf)
   vim.schedule(function()
     if str == vim.NIL then
       return
     end
-    local extmark = vim.api.nvim_buf_get_extmark_by_id(0, ns_id, extmark_id, { details = false })
+    local extmark = vim.api.nvim_buf_get_extmark_by_id(buf, ns_id, extmark_id, { details = false })
     local row, col = extmark[1], extmark[2]
     local lines = vim.split(str, '\n')
-    vim.api.nvim_buf_set_text(0, row, col, row, col, lines)
+    vim.cmd("undojoin")
+    vim.api.nvim_buf_set_text(buf, row, col, row, col, lines)
   end)
 end
 
