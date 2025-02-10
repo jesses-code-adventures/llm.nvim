@@ -61,7 +61,6 @@ end
 
 function Open_reasoning_window(buf, win)
   if buf ~= nil and vim.api.nvim_buf_is_valid(buf) and win ~= nil and vim.api.nvim_win_is_valid(win) then
-    print('valid')
     vim.api.nvim_set_current_win(win)
     vim.api.nvim_set_current_buf(buf)
     return { buf, win }
@@ -266,12 +265,9 @@ function Display_settings(storage_dir, toggle_reasoning_fn, picker_name)
     })
     return
   elseif pcall(require, 'telescope') and picker_name == 'telescope' then
-    print("displaying settings with telescope")
     display_settings_telescope(settings, toggle_reasoning_fn)
     return
   end
-
-  print("displaying settings natively")
 
   display_settings_native(settings, toggle_reasoning_fn)
 end
