@@ -2,6 +2,7 @@ MODELS = {
   'anthropic-claude-3-5-haiku-20241022',
   'anthropic-claude-3-5-sonnet-20240620',
   'anthropic-claude-3-5-sonnet-20241022',
+  'anthropic-claude-3-7-sonnet-20250219',
   'deepseek-deepseek-chat',
   'deepseek-deepseek-reasoner',
   'google-gemini-2.0-flash',
