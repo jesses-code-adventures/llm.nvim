@@ -55,10 +55,18 @@ function M.setup(opts)
   M.chat_path = Get_hashed_project_path(M._storage_dir, M.chat_name)
   M.llmfiles_path = Get_hashed_project_path(M._storage_dir, M.llmfiles_name)
   M.default_model = opts.default_model or 'anthropic-claude-3-5-sonnet-20241022'
-  if opts.picker ~= nil and opts.picker ~= 'telescope' and opts.picker ~= 'snacks' then
-    error('invalid picker, please pass "telescope", "snacks" or nil')
+  if opts.picker ~= nil and opts.picker ~= 'telescope' and opts.picker ~= 'snacks' and opts.picker ~= 'fzf-lua' then
+    error('invalid picker, please pass "telescope", "snacks", "fzf-lua" or nil')
   end
   M.picker = opts.picker
+
+  -- HACK: out of nowhere we've started getting a nil error on Get_settings sometimes
+  -- code still works fine, so just doing this check for now as cbf to fix properly yet
+  if Get_settings == nil then
+    M.model = M.default_model
+    M.show_reasoning = true
+    return
+  end
 
   local settings = Get_settings(M._storage_dir)
   if settings then
