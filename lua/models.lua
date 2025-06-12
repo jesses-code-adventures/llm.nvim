@@ -1,4 +1,27 @@
+require("utils")
+
+local function settings_path(dir)
+  return vim.fs.joinpath(dir, "settings.json")
+end
+
+function Get_settings(dir)
+  return Read_json(settings_path(dir))
+end
+
+function Write_selected_model(dir, model, reasoning)
+  vim.fn.mkdir(dir, "p")
+  local path = settings_path(dir)
+  local settings = {
+    model = model,
+    show_reasoning = reasoning,
+  }
+  Write_json(settings, path)
+  return settings
+end
+
 MODELS = {
+  'anthropic-claude-opus-4-20250514',
+  'anthropic-claude-sonnet-4-20250514',
   'anthropic-claude-3-5-haiku-20241022',
   'anthropic-claude-3-5-sonnet-20240620',
   'anthropic-claude-3-5-sonnet-20241022',

@@ -86,54 +86,80 @@ function Open_reasoning_window(buf, win)
   return open_floating_window("Reasoning", "ESC - exit", buf, win, relative_win, col, row, width, height, false)
 end
 
+local function select_model_telescope(models, select_model_callback)
+  local pickers = require('telescope.pickers')
+  local finders = require('telescope.finders')
+  local conf = require('telescope.config').values
+  local actions = require('telescope.actions')
+  local action_state = require('telescope.actions.state')
+
+  pickers.new({}, {
+    prompt_title = 'Find a Model',
+    results_title = 'LLM Models',
+    finder = finders.new_table({
+      results = models
+    }),
+    sorter = conf.generic_sorter({}),
+    attach_mappings = function(prompt_bufnr)
+      actions.select_default:replace(function()
+        actions.close(prompt_bufnr)
+        local selection = action_state.get_selected_entry()
+        select_model_callback(selection[1])
+      end)
+      return true
+    end,
+  }):find()
+  return { nil, nil }
+end
+
+local function select_model_fzf_lua(models, select_model_callback)
+  require('fzf-lua').fzf_exec(models, {
+    prompt = 'Select Model> ',
+    actions = {
+      ['default'] = function(selected)
+        if selected and selected[1] then
+          select_model_callback(selected[1])
+        end
+      end
+    }
+  })
+  return { nil, nil }
+end
+
+---@param select_model_callback fun(selected_model: string)
+---@param show_reasoning_callback fun()
+local function select_model_nvim(buf, win, models, select_model_callback, show_reasoning_callback)
+  if buf == nil or not vim.api.nvim_buf_is_valid(buf) then
+    buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(buf, 0, 0, false, models)
+    vim.bo[buf].modifiable = false
+    vim.keymap.set('n', '<CR>', function()
+      select_model_callback()
+      vim.api.nvim_win_close(0, true)
+    end, { buffer = buf, noremap = true, silent = true })
+    vim.keymap.set('n', 't', function() show_reasoning_callback() end, { buffer = buf, noremap = true, silent = true })
+    vim.api.nvim_buf_set_keymap(buf, 'n', 'q', ':bwipeout<CR>', { noremap = true, silent = true })
+    vim.api.nvim_buf_set_keymap(buf, 'n', '<ESC>', ':bwipeout<CR>', { noremap = true, silent = true })
+  end
+
+  if win == nil or not vim.api.nvim_win_is_valid(win) then
+    local dims = centered_win_dimensions(80, 20)
+    return open_floating_window("Select Model", "⏎ - select, t - toggle reasoning window display, q - quit", buf, win,
+      nil, dims[1], dims[2], dims[3], dims[4], true)
+  end
+
+  return { buf, win }
+end
 
 function Select_model(buf, win, models, select_model_callback, show_reasoning_callback, picker)
   if pcall(require, 'telescope') and picker == 'telescope' then
-    local pickers = require('telescope.pickers')
-    local finders = require('telescope.finders')
-    local conf = require('telescope.config').values
-    local actions = require('telescope.actions')
-    local action_state = require('telescope.actions.state')
-
-    pickers.new({}, {
-      prompt_title = 'Find a Model',
-      results_title = 'LLM Models',
-      finder = finders.new_table({
-        results = models
-      }),
-      sorter = conf.generic_sorter({}),
-      attach_mappings = function(prompt_bufnr)
-        actions.select_default:replace(function()
-          actions.close(prompt_bufnr)
-          local selection = action_state.get_selected_entry()
-          select_model_callback(selection[1])
-        end)
-        return true
-      end,
-    }):find()
-    return { nil, nil }
-  else
-    if buf == nil or not vim.api.nvim_buf_is_valid(buf) then
-      buf = vim.api.nvim_create_buf(false, true)
-      vim.api.nvim_buf_set_lines(buf, 0, 0, false, models)
-      vim.bo[buf].modifiable = false
-      vim.keymap.set('n', '<CR>', function()
-        select_model_callback()
-        vim.api.nvim_win_close(0, true)
-      end, { buffer = buf, noremap = true, silent = true })
-      vim.keymap.set('n', 't', function() show_reasoning_callback() end, { buffer = buf, noremap = true, silent = true })
-      vim.api.nvim_buf_set_keymap(buf, 'n', 'q', ':bwipeout<CR>', { noremap = true, silent = true })
-      vim.api.nvim_buf_set_keymap(buf, 'n', '<ESC>', ':bwipeout<CR>', { noremap = true, silent = true })
-    end
-   if win == nil or not vim.api.nvim_win_is_valid(win) then
-      local dims = centered_win_dimensions(80, 20)
-      return open_floating_window("Select Model", "⏎ - select, t - toggle reasoning window display, q - quit", buf, win,
-        nil, dims[1], dims[2], dims[3], dims[4], true)
-    end
-    return { buf, win }
+    return select_model_telescope(models, select_model_callback)
   end
+  if pcall(require, 'fzf-lua') and picker == 'fzf-lua' then
+    return select_model_fzf_lua(models, select_model_callback)
+  end
+  return select_model_nvim(buf, win, models, select_model_callback, show_reasoning_callback)
 end
-
 
 function Write_floating_content(content, floating_buf, floating_win)
   vim.schedule(function()
@@ -160,7 +186,6 @@ function Write_floating_content(content, floating_buf, floating_win)
   end)
 end
 
-
 function Clear_floating_display(floating_buf, floating_win)
   if floating_win and vim.api.nvim_win_is_valid(floating_win) then
     vim.api.nvim_win_close(floating_win, true)
@@ -171,48 +196,63 @@ function Clear_floating_display(floating_buf, floating_win)
   return { nil, nil }
 end
 
-
 local function display_settings_telescope(settings, toggle_reasoning_fn)
-    local pickers = require('telescope.pickers')
-    local finders = require('telescope.finders')
-    local actions = require('telescope.actions')
-    local action_state = require('telescope.actions.state')
+  local pickers = require('telescope.pickers')
+  local finders = require('telescope.finders')
+  local actions = require('telescope.actions')
+  local action_state = require('telescope.actions.state')
 
-    pickers.new({}, {
-      prompt_title = false,
-      results_title = 'LLM Settings',
-      prompt_prefix = "",
-      initial_mode = 'normal',
-      finder = finders.new_table({
-        results = {
-          "Model: " .. settings.model,
-          "Show Reasoning: " .. tostring(settings.show_reasoning),
-        }
-      }),
-      sorting_strategy = "ascending",
-      layout_strategy = "vertical",
-      layout_config = {
-        height = 0.2,
-      },
-      attach_mappings = function(prompt_bufnr, map)
-        actions.select_default:replace(function()
-          actions.close(prompt_bufnr)
-        end)
-        map('n', 't', function()
-          settings = toggle_reasoning_fn()
-          local picker = action_state.get_current_picker(prompt_bufnr)
-          picker:refresh(finders.new_table({
-            results = {
-              "Model: " .. settings.model,
-              "Show Reasoning: " .. tostring(settings.show_reasoning),
-            }
-          }))
-        end)
-        return true
-      end,
-    }):find()
+  pickers.new({}, {
+    prompt_title = false,
+    results_title = 'LLM Settings',
+    prompt_prefix = "",
+    initial_mode = 'normal',
+    finder = finders.new_table({
+      results = {
+        "Model: " .. settings.model,
+        "Show Reasoning: " .. tostring(settings.show_reasoning),
+      }
+    }),
+    sorting_strategy = "ascending",
+    layout_strategy = "vertical",
+    layout_config = {
+      height = 0.2,
+    },
+    attach_mappings = function(prompt_bufnr, map)
+      actions.select_default:replace(function()
+        actions.close(prompt_bufnr)
+      end)
+      map('n', 't', function()
+        settings = toggle_reasoning_fn()
+        local picker = action_state.get_current_picker(prompt_bufnr)
+        picker:refresh(finders.new_table({
+          results = {
+            "Model: " .. settings.model,
+            "Show Reasoning: " .. tostring(settings.show_reasoning),
+          }
+        }))
+      end)
+      return true
+    end,
+  }):find()
 end
 
+local function display_settings_fzf_lua(settings, toggle_reasoning_fn)
+  require('fzf-lua').fzf_exec({
+    "Model: " .. settings.model,
+    "Show Reasoning: " .. tostring(settings.show_reasoning),
+  }, {
+    prompt = 'Select Setting> ',
+    actions = {
+      ['default'] = function(selected)
+        if selected and selected[1] then
+          settings = toggle_reasoning_fn()
+          vim.notify("settings updated")
+        end
+      end
+    }
+  })
+end
 
 local function display_settings_native(settings, toggle_reasoning_fn)
   local buf = vim.api.nvim_create_buf(false, true)
@@ -267,11 +307,13 @@ function Display_settings(storage_dir, toggle_reasoning_fn, picker_name)
   elseif pcall(require, 'telescope') and picker_name == 'telescope' then
     display_settings_telescope(settings, toggle_reasoning_fn)
     return
+  elseif pcall(require, 'fzf-lua') and picker_name == 'fzf-lua' then
+    display_settings_fzf_lua(settings, toggle_reasoning_fn)
+    return
   end
 
   display_settings_native(settings, toggle_reasoning_fn)
 end
-
 
 function New_chat_panel(chat_path, llmfiles_path)
   vim.cmd('vsplit')

@@ -3,7 +3,6 @@ require("data_handlers")
 require("files")
 require("models")
 require("prompt")
-require("settings")
 require("utils")
 require("windows")
 
@@ -55,8 +54,8 @@ function M.setup(opts)
   M.chat_path = Get_hashed_project_path(M._storage_dir, M.chat_name)
   M.llmfiles_path = Get_hashed_project_path(M._storage_dir, M.llmfiles_name)
   M.default_model = opts.default_model or 'anthropic-claude-3-5-sonnet-20241022'
-  if opts.picker ~= nil and opts.picker ~= 'telescope' and opts.picker ~= 'snacks' and opts.picker ~= 'fzf-lua' then
-    error('invalid picker, please pass "telescope", "snacks", "fzf-lua" or nil')
+  if opts.picker ~= nil and opts.picker ~= 'telescope' and opts.picker ~= 'fzf-lua' then
+    error('invalid picker, please pass "telescope", "fzf-lua" or nil')
   end
   M.picker = opts.picker
 
